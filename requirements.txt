@@ -5,3 +5,5 @@ scikit-learn
 matplotlib
 seaborn
 jupyterlab
+dash>=2.18.0
+plotly>=5.24.0
