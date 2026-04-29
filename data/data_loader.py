@@ -51,7 +51,13 @@ def load_accident_data() -> pd.DataFrame:
         if col in df.columns:
             df[col] = df[col].astype(int)
 
+    # Cap Wind_Speed at 99th percentile — same treatment as notebook section 2.2.
+    # Raw data contains sensor errors up to 822 mph (physically impossible).
+    ws_cap = df["Wind_Speed(mph)"].quantile(0.99)
+    df["Wind_Speed(mph)"] = df["Wind_Speed(mph)"].clip(upper=ws_cap)
+
     print(f"Loaded {len(df):,} rows after cleaning.")
+    print(f"Wind_Speed capped at {ws_cap:.1f} mph (99th pct)")
     _PDF_CACHE = df
     return df
 
@@ -73,5 +79,5 @@ def get_slider_bounds(pdf: pd.DataFrame) -> dict:
                         round(float(pdf["Pressure(in)"].max()), 2)),
         "visibility":  (round(float(pdf["Visibility(mi)"].min()), 1),
                         round(float(pdf["Visibility(mi)"].max()), 1)),
-        "wind_speed":  (0.0, 60.0),  # cap at 60 mph; raw data has sensor outliers up to 822 mph
+        "wind_speed":  (0.0, round(float(pdf["Wind_Speed(mph)"].max()), 1)),
     }

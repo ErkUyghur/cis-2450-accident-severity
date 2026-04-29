@@ -10,6 +10,15 @@ MODAL_CONFIGS = {
         'max_width': '1400px',
         'button_label': 'Exploratory Data Analysis',
     },
+    'preprocessing': {
+        'title': 'Data Pre-processing & Feature Engineering',
+        'factory': 'create_preprocessing_modal',
+        'module': 'components.preprocessing_modal',
+        'dependencies': ['pdf'],
+        'width': '92%',
+        'max_width': '1400px',
+        'button_label': 'Pre-processing & Feature Engineering',
+    },
 }
 
 
