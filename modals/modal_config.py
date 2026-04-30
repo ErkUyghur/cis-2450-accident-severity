@@ -19,6 +19,15 @@ MODAL_CONFIGS = {
         'max_width': '1400px',
         'button_label': 'Pre-processing & Feature Engineering',
     },
+    'modeling': {
+        'title': 'Modeling & Results',
+        'factory': 'create_modeling_modal',
+        'module': 'components.modeling_modal',
+        'dependencies': [],
+        'width': '92%',
+        'max_width': '1400px',
+        'button_label': 'Modeling & Results',
+    },
 }
 
 
