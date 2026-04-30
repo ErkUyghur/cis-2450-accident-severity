@@ -14,7 +14,7 @@ pip install -r requirements.txt
 
 Drop `accidentsData.csv` into `data/raw/` (gitignored — too large to commit).
 
-Open `notebooks/01_eda_and_baseline.ipynb` in VS Code or Jupyter.
+Open `notebooks/accident_severity_prediction.ipynb` in VS Code or Jupyter.
 
 ## Structure
 
@@ -25,13 +25,16 @@ Open `notebooks/01_eda_and_baseline.ipynb` in VS Code or Jupyter.
 ├── models/               # saved sklearn pipelines (.joblib)
 ├── modals/               # Dash dashboard components
 ├── notebooks/
-│   └── 01_eda_and_baseline.ipynb   # full pipeline: EDA → 3 models
+│   └── accident_severity_prediction.ipynb   # full pipeline: EDA → 3 models
 ├── scripts/
 │   └── balance_dataset.py          # one-time stratified sampling from raw 3 GB file
 ├── dashboard.py
 ├── requirements.txt
 └── README.md
 ```
+
+## Dashboard Demo Link: 
+https://www.loom.com/share/9315227506034fc3b8f427c4a463ebc7
 
 ---
 

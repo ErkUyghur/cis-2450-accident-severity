@@ -1,6 +1,6 @@
 """Load and clean the accident dataset for the dashboard.
 
-Mirrors the cleaning steps in notebooks/01_eda_and_baseline.ipynb so the
+Mirrors the cleaning steps in notebooks/accident_severity_prediction.ipynb so the
 dashboard and the notebook operate on identical data.
 """
 
