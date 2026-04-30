@@ -38,6 +38,61 @@ _HIGHLIGHT_CARD = {
 
 # ── Chart builders ────────────────────────────────────────────────────────────
 
+def _imbalance_comparison_chart(pdf: pd.DataFrame):
+    """Side-by-side: approximate raw distribution (log scale) vs balanced working dataset."""
+    raw_counts = [67_366, 2_600_000, 310_000, 60_000]
+    raw_total  = sum(raw_counts)
+    sev_labels = ['Sev 1', 'Sev 2', 'Sev 3', 'Sev 4']
+    colors     = ['#2196F3', '#F44336', '#FF9800', '#9C27B0']
+
+    bal = pdf['Severity'].value_counts().sort_index().reset_index()
+    bal.columns = ['Severity', 'Count']
+    bal_total = bal['Count'].sum()
+
+    fig = make_subplots(
+        rows=1, cols=2,
+        subplot_titles=[
+            'Raw Kaggle Dataset (approximate, log scale)',
+            'Balanced Working Dataset',
+        ],
+        horizontal_spacing=0.12,
+    )
+
+    fig.add_trace(
+        go.Bar(
+            x=sev_labels,
+            y=raw_counts,
+            marker_color=colors,
+            text=[f'~{c:,}<br>({c/raw_total*100:.0f}%)' for c in raw_counts],
+            textposition='outside',
+            showlegend=False,
+        ),
+        row=1, col=1,
+    )
+
+    fig.add_trace(
+        go.Bar(
+            x=sev_labels,
+            y=bal['Count'].tolist(),
+            marker_color=colors,
+            text=[f'{c:,}<br>({c/bal_total*100:.0f}%)' for c in bal['Count']],
+            textposition='outside',
+            showlegend=False,
+        ),
+        row=1, col=2,
+    )
+
+    fig.update_yaxes(type='log', title_text='Count (log scale)', row=1, col=1)
+    fig.update_yaxes(title_text='Count', range=[0, 80_000], tickformat=',', row=1, col=2)
+    fig.update_layout(
+        title='Class Imbalance: Original Raw Distribution vs Balanced Working Dataset',
+        height=380,
+        margin=dict(t=80, b=20, l=60, r=20),
+        plot_bgcolor='white', paper_bgcolor='white',
+    )
+    return fig
+
+
 def _severity_chart(pdf: pd.DataFrame):
     counts = pdf['Severity'].value_counts().sort_index().reset_index()
     counts.columns = ['Severity', 'Count']
@@ -370,6 +425,7 @@ def _compute_hypothesis_tests(pdf: pd.DataFrame) -> list[dict]:
 
 def create_eda_modal(pdf: pd.DataFrame):
     """Factory: return (backdrop, modal) for the EDA section."""
+    fig_imbalance = _imbalance_comparison_chart(pdf)
     fig_sev      = _severity_chart(pdf)
     fig_hour     = _hour_dual_chart(pdf)
     fig_dow      = _dow_chart(pdf)
@@ -399,14 +455,34 @@ def create_eda_modal(pdf: pd.DataFrame):
                 style={'color': '#555', 'marginBottom': '20px', 'fontSize': '14px'},
             ),
 
-            # ── Row 1: Severity | Dual-series hour ───────────────────────────
+            # ── Row 0: Class imbalance — before vs after ─────────────────────
+            html.Div([
+                html.H3('Why We Balanced the Dataset', style=_SECTION_TITLE),
+                dcc.Graph(figure=fig_imbalance, config=cfg),
+                html.Div([
+                    html.Strong('The raw dataset is ~87% Severity 2. ', style={'color': '#333'}),
+                    html.Span(
+                        'A model trained on the raw distribution would learn to always predict '
+                        '"Severity 2" and achieve ~87% accuracy — while completely failing to '
+                        'flag high-risk conditions. '
+                        'The left panel shows the approximate original counts (log scale — '
+                        'note how Severity 2 dwarfs all other classes). '
+                        'The right panel shows our balanced 269k working dataset, where each '
+                        'severity level has ~67k records, forcing models to learn '
+                        'genuinely distinguishing patterns.',
+                        style={'fontSize': '13px', 'color': '#555'},
+                    ),
+                ], style={**_HIGHLIGHT_CARD, 'marginTop': '12px', 'padding': '12px 16px'}),
+            ], style=_CARD),
+
+            # ── Row 1: Balanced severity | Dual-series hour ──────────────────
             html.Div([
                 html.Div([
                     dcc.Graph(figure=fig_sev, config=cfg),
                     html.P(
-                        'The balanced sample has ~67k rows per severity class. Without '
-                        'balancing, Severity 2 makes up ~90% of the raw dataset — models '
-                        'would default to always predicting Severity 2.',
+                        'After null-dropping on model features, each class retains ~65–67k '
+                        'rows. Minor height differences reflect differing null rates across '
+                        'severity levels — expected and acceptable.',
                         style=_NOTE,
                     ),
                 ], style=_HALF),
