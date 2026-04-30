@@ -1,3 +1,6 @@
+# Model files
+*.joblib
+
 # Data files — too big to commit
 data/raw/*
 data/processed/*
