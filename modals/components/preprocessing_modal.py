@@ -86,6 +86,17 @@ _STEPS = [
         'EDA Section': 'Pipeline',
         'Justification': 'LR and distance-based models are sensitive to scale; unscaled features bias toward high-magnitude columns.',
     },
+    {
+        'Step': 'Feature exclusion',
+        'Action': 'Exclude State as a model feature',
+        'EDA Section': '3.9',
+        'Justification': (
+            'Kruskal-Wallis confirmed State IS associated with severity (p ≈ 0), '
+            'but Spearman ρ between raw and per-capita rates was low — the signal is '
+            'confounded by population density, not generalizable weather/road risk. '
+            '50 state categories also risk overfitting to geographic artifacts.'
+        ),
+    },
 ]
 
 
@@ -221,7 +232,8 @@ def create_preprocessing_modal(pdf: pd.DataFrame):
         html.Div([
             html.P(
                 'Every preprocessing step below is an EDA-informed decision, not an arbitrary default. '
-                'The table maps each action to the section of the notebook that motivated it.',
+                'Steps marked with EDA § are backed by visual patterns; those from §3.9–3.10 '
+                'are additionally validated by formal statistical tests (see EDA → Hypothesis Testing).',
                 style={'color': '#555', 'marginBottom': '20px', 'fontSize': '14px'}
             ),
 
@@ -242,7 +254,7 @@ def create_preprocessing_modal(pdf: pd.DataFrame):
                         {'if': {'column_id': 'EDA Section'},  'width': '60px',  'textAlign': 'center'},
                         {'if': {'column_id': 'Action'},       'width': '240px'},
                     ],
-                    page_size=9,
+                    page_size=10,
                 ),
             ], style=_CARD),
 
