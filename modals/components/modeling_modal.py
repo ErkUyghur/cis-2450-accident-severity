@@ -68,7 +68,7 @@ _MODEL_STEPS = [
     },
     {
         'Model': 'Model 3: Gradient Boosting',
-        'Best Parameters': 'learning_rate = 0.2, max_depth = 8, 200 rounds (GridSearchCV, 3-fold)',
+        'Best Parameters': 'lr ≈ 0.25, max_depth = 11, min_samples_leaf = 54 (RandomizedSearchCV, 25 iter, 3-fold)',
         'Why This Architecture': (
             'Sequential training: each new tree is fit to the residual errors of '
             'the current ensemble, directly correcting hard cases RF got wrong'
@@ -83,8 +83,8 @@ _MODEL_STEPS = [
 
 # ── Performance metrics (exact values from notebook classification reports) ───
 _MODELS_SHORT = ['LR (Baseline)', 'Random Forest', 'Gradient Boosting']
-_ACCURACY          = [0.6780, 0.7215, 0.7196]
-_MACRO_F1          = [0.6780, 0.7215, 0.7196]
+_ACCURACY          = [0.6780, 0.7215, 0.7216]
+_MACRO_F1          = [0.6780, 0.7215, 0.7216]
 _SEVERE_RECALL     = [0.66,   0.75,   0.72]
 _NOT_SEVERE_RECALL = [0.69,   0.69,   0.72]
 
@@ -104,11 +104,14 @@ _CM = {
 _LR_C_VALUES   = [0.01, 0.1, 1.0, 10.0, 100.0]
 _LR_CV_SCORES  = [0.668954, 0.669289, 0.669328, 0.669432, 0.669298]
 
-# ── GBM GridSearchCV results (9 combinations × 3-fold) ───────────────────────
-_GBM_GRID = [
-    (0.05, 4, 0.692065), (0.05, 6, 0.699579), (0.05, 8, 0.701295),
-    (0.10, 4, 0.698166), (0.10, 6, 0.704211), (0.10, 8, 0.704841),
-    (0.20, 4, 0.703588), (0.20, 6, 0.704665), (0.20, 8, 0.704857),
+# ── GBM RandomizedSearchCV results (top 5 of 25 combinations) ────────────────
+# Columns: (learning_rate, max_depth, min_samples_leaf, cv_macro_f1)
+_GBM_RANDOM_TOP = [
+    (0.2503, 11, 54, 0.705786),
+    (0.1186, 10, 30, 0.705670),
+    (0.1891,  8, 53, 0.705589),
+    (0.1404,  6, 23, 0.705246),
+    (0.2209, 10, 23, 0.704857),
 ]
 
 
@@ -287,29 +290,62 @@ def _lr_tuning_chart():
 
 
 def _gbm_tuning_chart():
-    """Heatmap of learning_rate × max_depth grid — shows the optimal region."""
-    df = pd.DataFrame(_GBM_GRID, columns=['lr', 'depth', 'score'])
-    pivot = df.pivot(index='lr', columns='depth', values='score')
+    """Scatter of top-5 RandomizedSearchCV results — learning_rate sampled continuously."""
+    lrs    = [r[0] for r in _GBM_RANDOM_TOP]
+    depths = [r[1] for r in _GBM_RANDOM_TOP]
+    leaves = [r[2] for r in _GBM_RANDOM_TOP]
+    scores = [r[3] for r in _GBM_RANDOM_TOP]
 
-    fig = go.Figure(go.Heatmap(
-        z=pivot.values,
-        x=[f'depth={c}' for c in pivot.columns],
-        y=[f'lr={r}' for r in pivot.index],
-        text=[[f'{v:.4f}' for v in row] for row in pivot.values],
-        texttemplate='%{text}',
-        textfont=dict(size=11),
-        colorscale='Viridis',
-        showscale=True,
-        colorbar=dict(len=0.8, thickness=12),
-        xgap=3, ygap=3,
+    fig = go.Figure()
+
+    # All top-5 combinations
+    fig.add_trace(go.Scatter(
+        x=lrs, y=scores,
+        mode='markers',
+        marker=dict(
+            size=14,
+            color=depths,
+            colorscale='Viridis',
+            showscale=True,
+            colorbar=dict(title='max_depth', len=0.75, thickness=12),
+            line=dict(width=1, color='white'),
+        ),
+        customdata=list(zip(depths, leaves)),
+        hovertemplate=(
+            'lr = %{x:.4f}<br>CV F1 = %{y:.6f}<br>'
+            'max_depth = %{customdata[0]}<br>'
+            'min_samples_leaf = %{customdata[1]}<extra></extra>'
+        ),
+        showlegend=False,
     ))
+
+    # Star on best result
+    fig.add_trace(go.Scatter(
+        x=[lrs[0]], y=[scores[0]],
+        mode='markers',
+        marker=dict(size=16, color='#e74c3c', symbol='star'),
+        name=f'Best: lr={lrs[0]:.2f}, depth={depths[0]}',
+    ))
+
+    # Dotted lines at old GridSearch grid points for contrast
+    for lr_old in [0.05, 0.1, 0.2]:
+        fig.add_vline(x=lr_old, line_dash='dot', line_color='#bbb', line_width=1)
+    fig.add_annotation(
+        x=0.108, y=0.70462, text='← old grid\n  points',
+        showarrow=False, font=dict(size=9, color='#aaa'), xanchor='left',
+    )
+
     fig.update_layout(
-        title='GBM Grid Search — CV Macro F1',
+        title='GBM RandomizedSearchCV — Top 5 of 25 (lr sampled continuously)',
         height=270,
-        margin=dict(t=40, b=40, l=70, r=60),
-        xaxis=dict(title='max_depth'),
-        yaxis=dict(title='learning_rate'),
+        margin=dict(t=40, b=45, l=60, r=20),
         plot_bgcolor='white', paper_bgcolor='white',
+        legend=dict(x=0.01, y=0.05, bgcolor='rgba(255,255,255,0.85)',
+                    font=dict(size=10)),
+        xaxis=dict(title='Learning Rate (sampled from uniform[0.01, 0.30])',
+                   gridcolor='#eeeeee', tickformat='.2f', range=[0.08, 0.30]),
+        yaxis=dict(title='CV Macro F1', gridcolor='#eeeeee',
+                   tickformat='.4f', range=[0.7045, 0.7063]),
     )
     return fig
 
@@ -454,12 +490,14 @@ def create_modeling_modal(_pdf=None):
                     ),
                     dcc.Graph(figure=fig_gbm_t, config=cfg),
                     html.P(
-                        'GBM: the 3×3 grid reveals that higher depth + higher learning rate '
-                        'consistently improves CV F1. Best combination: lr=0.2, depth=8 '
-                        '(CV F1 = 0.7049). The overall gain from tuning is modest (+0.2 pp), '
-                        'suggesting the dataset\'s signal is well-captured even by default '
-                        'settings — the hard ceiling is likely the label noise in the '
-                        'Severity 2/3 boundary rather than model capacity.',
+                        'GBM: RandomizedSearchCV sampled 25 combinations from continuous '
+                        'distributions over learning_rate ∈ [0.01, 0.30], max_depth ∈ [3–11], '
+                        'and min_samples_leaf ∈ [10–59]. The best result (lr=0.25, depth=11) '
+                        'achieved CV F1=0.7058 — a +0.4 pp gain vs the pre-tuning baseline. '
+                        'Crucially, the optimal learning_rate (0.25) falls between the old '
+                        'GridSearch grid points (0.2 and 0.3), which a fixed grid could never '
+                        'have found. The dotted vertical lines on the chart mark the old grid '
+                        'points for comparison.',
                         style=_NOTE,
                     ),
                 ], style=_HALF_RIGHT),

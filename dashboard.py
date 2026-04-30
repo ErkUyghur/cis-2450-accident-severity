@@ -269,7 +269,8 @@ def _build_intro(modal_buttons: list) -> html.Div:
                     '3', 'Modeling & Results',
                     '3-model progression from Logistic Regression to Random Forest to '
                     'Gradient Boosting, with confusion matrices, feature importances, '
-                    'and GridSearchCV hyperparameter tuning results.',
+                    'and hyperparameter tuning (GridSearchCV for LR/RF; '
+                    'RandomizedSearchCV with continuous distributions for GBM).',
                     btn['Modeling & Results'],
                     'Modeling & Results',
                 ),
